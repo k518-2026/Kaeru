@@ -1,5 +1,8 @@
 # Kaeru － Word / PDF を LaTeX・Markdown・ODF に変換
 
+実行ファイルのダウンロード.
+https://github.com/k518-2026/Kaeru/releases
+
 Word 文書 (.docx) と PDF (.pdf) を読み込んで、**LaTeX (.tex)**、**Markdown (.md)**、
 **ODF テキスト (.odt)** に変換する Windows デスクトップアプリです。
 WPF (C# / .NET 8) の Visual Studio プロジェクト一式になっています。

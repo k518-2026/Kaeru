@@ -1,0 +1,304 @@
+<UserControl x:Class="PdfToWord.PdfToWordView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Background="{DynamicResource BgBrush}"
+        FontFamily="Yu Gothic UI, Meiryo UI, Segoe UI"
+        AllowDrop="True"
+        DragOver="OnDragOver"
+        Drop="OnDrop">
+
+    <!-- 旧 PdfToWord（2026-11-02 に Kaeru へ統合）。見た目はこのタブの中だけに効かせる -->
+    <UserControl.Resources>
+        <ResourceDictionary Source="/Kaeru;component/PdfToWord/Themes/Theme.xaml" />
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 見出し -->
+        <StackPanel Grid.Row="0" Margin="2,0,2,16">
+            <TextBlock Text="PDF → Word 変換" Style="{StaticResource TitleText}" />
+            <TextBlock Style="{StaticResource MutedText}"
+                       Margin="0,4,0,0"
+                       Text="PDF の文字を読み取り、段落・見出し・表として組み直した .docx を作ります。ウィンドウにファイルを落としても追加できます。" />
+        </StackPanel>
+
+        <!-- 本体 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="380" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ファイル一覧 -->
+            <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,16,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Text="変換するファイル" Style="{StaticResource SectionText}" VerticalAlignment="Center" Margin="0" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button x:Name="BtnAdd"
+                                    Content="追加"
+                                    Style="{StaticResource GhostButton}"
+                                    Click="OnAddFiles" />
+                            <Button x:Name="BtnRemove"
+                                    Content="選択を外す"
+                                    Style="{StaticResource GhostButton}"
+                                    Margin="8,0,0,0"
+                                    Click="OnRemoveSelected" />
+                            <Button x:Name="BtnClear"
+                                    Content="すべて消す"
+                                    Style="{StaticResource GhostButton}"
+                                    Margin="8,0,0,0"
+                                    Click="OnClearFiles" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="1">
+                        <ListBox x:Name="FileList"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 SelectionMode="Extended"
+                                 MouseDoubleClick="OnListDoubleClick"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0" />
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="Row"
+                                            Background="{StaticResource SubtleBrush}"
+                                            CornerRadius="8"
+                                            Padding="12,10"
+                                            Margin="0,0,4,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding FileName}"
+                                                           FontSize="13"
+                                                           FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Foreground="{StaticResource TextBrush}" />
+                                                <TextBlock Text="{Binding FolderName}"
+                                                           FontSize="11"
+                                                           Margin="0,2,0,0"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Foreground="{StaticResource MutedBrush}" />
+                                                <TextBlock Text="{Binding Message}"
+                                                           FontSize="11"
+                                                           Margin="0,4,0,0"
+                                                           TextWrapping="Wrap"
+                                                           Foreground="{StaticResource MutedBrush}" />
+                                            </StackPanel>
+
+                                            <Border x:Name="Pill"
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Top"
+                                                    Background="{StaticResource SurfaceBrush}"
+                                                    CornerRadius="10"
+                                                    Padding="10,3">
+                                                <TextBlock x:Name="PillText"
+                                                           Text="{Binding StateLabel}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource MutedBrush}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="Converting">
+                                            <Setter TargetName="Pill" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                                            <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Done">
+                                            <Setter TargetName="Pill" Property="Background" Value="{StaticResource SuccessSoftBrush}" />
+                                            <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Failed">
+                                            <Setter TargetName="Pill" Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                                            <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <Border x:Name="EmptyHint"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1.5"
+                                CornerRadius="10"
+                                Background="Transparent"
+                                IsHitTestVisible="False">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="ここに PDF を落としてください"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MutedBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="「追加」から選ぶこともできます。フォルダーごと落とすと中の PDF をまとめて読み込みます。"
+                                           FontSize="11"
+                                           Margin="0,6,0,0"
+                                           Foreground="{StaticResource MutedBrush}"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- 設定 -->
+            <Border Grid.Column="1" Style="{StaticResource Card}" Padding="16,16,8,16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="組み立て方" Style="{StaticResource SectionText}" />
+                        <RadioButton x:Name="ModeReflow"
+                                     Style="{StaticResource Radio}"
+                                     GroupName="mode"
+                                     IsChecked="True"
+                                     Content="段落に組み直す（あとで編集しやすい）" />
+                        <RadioButton x:Name="ModeKeepLines"
+                                     Style="{StaticResource Radio}"
+                                     GroupName="mode"
+                                     Content="PDF の 1 行を 1 段落のまま残す" />
+
+                        <TextBlock Text="読み取り" Style="{StaticResource SectionText}" Margin="0,10,0,8" />
+                        <CheckBox x:Name="ChkHeadings" Style="{StaticResource Check}" IsChecked="True" Content="文字の大きさから見出しを推定する" />
+                        <CheckBox x:Name="ChkTables" Style="{StaticResource Check}" IsChecked="True" Content="列のそろった部分を表にする" />
+                        <CheckBox x:Name="ChkColumns" Style="{StaticResource Check}" IsChecked="True" Content="段組みを判別して読む順序を直す" />
+                        <CheckBox x:Name="ChkImages" Style="{StaticResource Check}" IsChecked="True" Content="埋め込まれた画像を取り込む" />
+                        <CheckBox x:Name="ChkRunningHeads" Style="{StaticResource Check}" IsChecked="True" Content="毎ページ同じ柱（ヘッダー・ノンブル）を落とす" />
+
+                        <TextBlock Text="書き出し" Style="{StaticResource SectionText}" Margin="0,10,0,8" />
+                        <CheckBox x:Name="ChkPageBreaks" Style="{StaticResource Check}" IsChecked="True" Content="ページごとに改ページを入れる" />
+                        <CheckBox x:Name="ChkAvoidOverwrite" Style="{StaticResource Check}" IsChecked="True" Content="同じ名前があれば連番を付ける" />
+                        <CheckBox x:Name="ChkOpenFolder" Style="{StaticResource Check}" IsChecked="True" Content="変換が終わったら保存先を開く" />
+
+                        <TextBlock Text="対象と鍵" Style="{StaticResource SectionText}" Margin="0,10,0,8" />
+                        <TextBlock Text="ページ範囲" Style="{StaticResource MutedText}" Margin="0,0,0,4" />
+                        <TextBox x:Name="TxtPageRange" Style="{StaticResource Field}" />
+                        <TextBlock Text="例：1-3,7  空欄ならすべてのページ"
+                                   Style="{StaticResource MutedText}"
+                                   FontSize="11"
+                                   Margin="2,4,0,10" />
+
+                        <TextBlock Text="パスワード（かかっている場合）" Style="{StaticResource MutedText}" Margin="0,0,0,4" />
+                        <PasswordBox x:Name="TxtPassword"
+                                     Padding="9,7"
+                                     FontSize="13"
+                                     BorderBrush="{StaticResource BorderBrush}"
+                                     Background="{StaticResource SurfaceBrush}" />
+
+                        <TextBlock Text="Word で使うフォント" Style="{StaticResource SectionText}" Margin="0,16,0,8" />
+                        <TextBlock Text="和文" Style="{StaticResource MutedText}" Margin="0,0,0,4" />
+                        <ComboBox x:Name="CmbJapaneseFont" IsEditable="True" FontSize="13" Padding="8,6" />
+                        <TextBlock Text="欧文" Style="{StaticResource MutedText}" Margin="0,10,0,4" />
+                        <ComboBox x:Name="CmbLatinFont" IsEditable="True" FontSize="13" Padding="8,6" />
+
+                        <TextBlock Text="保存先" Style="{StaticResource SectionText}" Margin="0,16,0,8" />
+                        <CheckBox x:Name="ChkSameFolder"
+                                  Style="{StaticResource Check}"
+                                  IsChecked="True"
+                                  Content="元の PDF と同じ場所に保存する"
+                                  Checked="OnSameFolderChanged"
+                                  Unchecked="OnSameFolderChanged" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="TxtOutputFolder"
+                                     Grid.Column="0"
+                                     Style="{StaticResource Field}"
+                                     IsEnabled="False" />
+                            <Button x:Name="BtnBrowse"
+                                    Grid.Column="1"
+                                    Content="参照"
+                                    Margin="8,0,0,0"
+                                    IsEnabled="False"
+                                    Style="{StaticResource GhostButton}"
+                                    Click="OnBrowseFolder" />
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- 下部 -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,16,0,0" Padding="16,14">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+                        <TextBlock x:Name="StatusText"
+                                   Text="PDF を追加してください。"
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextBrush}" />
+                        <ProgressBar x:Name="Progress"
+                                     Style="{StaticResource Progress}"
+                                     Margin="0,10,0,0"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Value="0" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="BtnPreview"
+                                Content="中身を見る"
+                                Style="{StaticResource GhostButton}"
+                                Padding="16,9"
+                                Margin="0,0,10,0"
+                                Click="OnPreview" />
+                        <Button x:Name="BtnCancel"
+                                Content="中止"
+                                Style="{StaticResource GhostButton}"
+                                Padding="16,9"
+                                IsEnabled="False"
+                                Click="OnCancel" />
+                        <Button x:Name="BtnConvert"
+                                Content="Word に変換"
+                                Style="{StaticResource PrimaryButton}"
+                                Margin="10,0,0,0"
+                                Click="OnConvert" />
+                    </StackPanel>
+                </Grid>
+
+                <Expander x:Name="LogPanel" Header="ログ" Margin="0,12,0,0" FontSize="12" Foreground="{StaticResource MutedBrush}">
+                    <TextBox x:Name="LogBox"
+                             Margin="0,8,0,0"
+                             MaxHeight="160"
+                             IsReadOnly="True"
+                             FontFamily="Consolas, Yu Gothic UI"
+                             FontSize="12"
+                             BorderThickness="1"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             Background="{StaticResource SubtleBrush}"
+                             Padding="10"
+                             TextWrapping="NoWrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto" />
+                </Expander>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

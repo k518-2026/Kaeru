@@ -7,6 +7,18 @@ Word 文書 (.docx) と PDF (.pdf) を読み込んで、**LaTeX (.tex)**、**Mar
 **ODF テキスト (.odt)** に変換する Windows デスクトップアプリです。
 WPF (C# / .NET 8) の Visual Studio プロジェクト一式になっています。
 
+## 3 つのタブ（2026-11-02 から）
+
+| タブ | できること | もとのアプリ |
+|---|---|---|
+| Word・PDF → LaTeX / Markdown / ODT | この README の以下で説明する変換 | Kaeru |
+| PDF → Word | PDF の文字を読み取り、段落・見出し・表として組み直した .docx を作る（ページ範囲・パスワード・段組みの判別・画像の取り込み・中身の下見） | PdfToWord |
+| iWork → Office | Pages → .docx、Numbers → .xlsx、Keynote → .pptx（iWork '09 の形式も可） | iWorkConverter |
+
+2 つ目と 3 つ目のタブは、もとのアプリの画面と処理をそのまま移したものです（`PdfToWord\` と `IWork\` フォルダー）。
+どちらも NuGet を使わない自前の実装です。見た目は各タブの中だけに効かせているので、タブごとに見た目が違います。
+もとのソースは `E:\ClaudeCode\_archive\merged-2026-11-02\src\` にあります（古い PdfToWordApp は文字だけを取り出す旧版のため、移さずにアーカイブしました）。
+
 ## ビルドと実行
 
 1. `Kaeru.sln` を Visual Studio 2022（17.8 以降）で開く
